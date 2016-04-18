@@ -33,7 +33,7 @@ open(F,"<$file") or die "Ne peux pas ouvrir le journal '$file' ($!)";
 #my %code_reglement_clients;
 
 # connexion à loginor pour récupérer les type de traite client
-#my $loginor = new Win32::ODBC('DSN=RUBIS;UID=AFBP;PWD=***REMOVED***;') or die "Ne peux pas se connecter à Rubis";
+#my $loginor = new Win32::ODBC('DSN=RUBIS;UID=;PWD=;') or die "Ne peux pas se connecter à Rubis";
 #print "Recuperation des traites client ...";
 #my $sql = <<EOT;
 #select REGCL,NOCLI from AFAGESTCOM.ACLIENP1
@@ -43,7 +43,6 @@ open(F,"<$file") or die "Ne peux pas ouvrir le journal '$file' ($!)";
 #while($loginor->FetchRow()) {
 #	my %row = $loginor->DataHash();
 #	$code_reglement_clients{$row{'NOCLI'}} = $row{'REGCL'}.(' ' x (4 - length($row{'REGCL'}))); #code reglement sur 4 caracteres
-#	
 #}
 #print " ok\n";
 
@@ -52,7 +51,7 @@ if (BUILD_TXT) {
 	open(FOUT,"+>${filename_without_ext}-quadra.txt") or die "Ne peux pas creer le fichier quadra '$filename_without_ext.txt' ($!)"; 
 }
 if (BUILD_CVS) {
-	open(FCSV,"+>$filename_without_ext.csv") or die "Ne peux pas creer le fichier quadra '$filename_without_ext.csv' ($!)";
+	open(FCSV,"+>${filename_without_ext}.csv") or die "Ne peux pas creer le fichier quadra '$filename_without_ext.csv' ($!)";
 }
 
 
@@ -60,7 +59,7 @@ if (BUILD_CVS) {
 print FCSV join(';',qw/numero date reference echeance numero_compte libelle_compte libelle_ecriture sens montant debit credit/)."\n" if BUILD_CVS;
 
 my $journal_en_cours = '' ;
-my $i=0;
+my ($ligne,$ligne_traitee)=(0,0);
 while(<F>) {
 	chomp;
 	
@@ -71,25 +70,29 @@ while(<F>) {
 		print "NOUVEAU journal : '$journal_en_cours'\n" if $old_journal ne $journal_en_cours;
 	}
 
-
+	# ancien format
 	#!S    18719  7/01/08 ! FAFA    711888           ! 29.02.08 ! 411056001  ALRE CHAUFFAGE SANITAIRE            ALRE CHAUFFAGE SANITAIRE           !        272,04                !
+
+	# nouveau format
+	#!S        1 15/04/16!AAFA     30878                !31.05.16 !411056039  CAB 56                              CAB 56                             !                        94,43 !
+
 	# on regarde si la ligne correspond a une ligne d'écriture comptable
 	if (my ($numero,$date_jour,$date_mois,$date_annee,$facture_ou_avoir,$reference,$date_echeance,$numero_compte,$libelle_compte,$libelle_ligne,$debit,$credit) = 
-		(/	^!S\s+				# ligne décriture
+		(/	^!S\s+				# ligne d'écriture
 			(\d+)				# numéro
 			\s+
 			(\d+)\/(\d+)\/(\d+)	# date
-			\s+!\s+
+			\s*!\s*
 			([\w\d]+)			# FAFA ou AAFA -> avoir ou facture
 			\s+
 			([^!]+)				# référence
 			!
 			([^!]+)				# Date Echéance -> non obligatoire
-			!\s+
-			([\w\d\-\.]+)			# n° de compte
+			!\s*
+			([\w\d\-\.]+)		# n° de compte
 			\s+
 			(.{36})				# libéllé du compte
-			([^!]+)				# libéllé écritre
+			([^!]+)				# libéllé écriture
 			!
 			(.{14})				# débit
 			(.{15})				# crédit
@@ -198,19 +201,23 @@ while(<F>) {
 									$debit,
 									$credit
 								)
-							)."\n" if BUILD_CSV; 
+							)."\n" if BUILD_CSV;
+
+		$ligne++;
 
 	} else { # ce n'est pas une écriture comptable
-		if (/^!S/) { # aurait du être traité
-			print "REJETE '$_'\n";
-		}
+		print "REJETE '$_'\n" if (/^!S/); # aurait du être traité
 		next ;
 	}
-}
+
+} #fin while lignedu fichier
+
 close F;
 close FOUT if BUILD_TXT;
 close FCSV if BUILD_CSV;
 #$loginor->Close();
+
+print  "Nombre de ligne du fichier : $ligne\n";
 
 sub trim {
 	my $arg = shift;
