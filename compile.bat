@@ -1,0 +1,1 @@
+start pp -o rubis2quadra.exe rubis2quadra.pl

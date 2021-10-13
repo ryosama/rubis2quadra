@@ -1,8 +1,6 @@
 #!/usr/bin/perl
 
 use Data::Dumper;
-#use Win32::ODBC;
-#use strict ;
 
 use constant BUILD_CVS => 0 ;
 use constant BUILD_TXT => 1 ;
@@ -29,22 +27,6 @@ if (!$file) { # si aucun nom n'a été donné pour la tranformation, on essai de vo
 print "Converstion du fichier '$file'\n";
 
 open(F,"<$file") or die "Ne peux pas ouvrir le journal '$file' ($!)";
-
-#my %code_reglement_clients;
-
-# connexion à loginor pour récupérer les type de traite client
-#my $loginor = new Win32::ODBC('DSN=RUBIS;UID=;PWD=;') or die "Ne peux pas se connecter à Rubis";
-#print "Recuperation des traites client ...";
-#my $sql = <<EOT;
-#select REGCL,NOCLI from AFAGESTCOM.ACLIENP1
-#EOT
-#$loginor->Sql($sql);
-#
-#while($loginor->FetchRow()) {
-#	my %row = $loginor->DataHash();
-#	$code_reglement_clients{$row{'NOCLI'}} = $row{'REGCL'}.(' ' x (4 - length($row{'REGCL'}))); #code reglement sur 4 caracteres
-#}
-#print " ok\n";
 
 my ($filename_without_ext) = ($file =~ m/(.+)\.txt$/i);
 if (BUILD_TXT) {
@@ -215,7 +197,6 @@ while(<F>) {
 close F;
 close FOUT if BUILD_TXT;
 close FCSV if BUILD_CSV;
-#$loginor->Close();
 
 print  "Nombre de ligne du fichier : $ligne\n";
 
